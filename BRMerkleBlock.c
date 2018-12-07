@@ -122,18 +122,11 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
             if (block->flags) memcpy(block->flags, &buf[off], len);
         }
 
-        BRSHA256_2(&block->blockHash, buf, 80);
+        MWKeccak256(block->blockHash.u8, buf, 80);
     }
-    if(block->timestamp < TIMESTAMP_HARDFORK_LYRA2)
-        BRScryptN(&block->powHash, buf, 80);
-    else  if(block->timestamp < TIMESTAMP_HARDFORK_LYRA2RE)
-        BRLyra2(&block->powHash, buf);
-    else
-        BRLyra2REv2(&block->powHash, buf);
 
     return block;
 }
-
 
 // returns number of bytes written to buf, or total bufLen needed if buf is NULL (block->height is not serialized)
 size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t bufLen)
@@ -278,9 +271,6 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
     // check if timestamp is too far in future
     if (block->timestamp > currentTime + BLOCK_MAX_TIME_DRIFT) r = 0;
 
-    return r;
-
-    // TODO this check fails.
     // check if proof-of-work target is out of range
     if (target == 0 || target & 0x00800000 || size > maxsize || (size == maxsize && target > maxtarget)) r = 0;
 
@@ -288,8 +278,8 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
     else UInt32SetLE(t.u8, target >> (3 - size)*8);
 
     for (int i = sizeof(t) - 1; r && i >= 0; i--) { // check proof-of-work
-        if (block->powHash.u8[i] < t.u8[i]) break;
-        if (block->powHash.u8[i] > t.u8[i]) r = 0;
+        if (block->blockHash.u8[i] < t.u8[i]) break;
+        if (block->blockHash.u8[i] > t.u8[i]) r = 0;
     }
 
     return r;
@@ -324,9 +314,6 @@ int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
 {
     int r = 1;
-    return r;
-
-    // TODO: Implement difficulty check
 
     assert(block != NULL);
     assert(previous != NULL);
@@ -334,7 +321,7 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
     if (! previous || !UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
 
-#if VERTCOIN_TESTNET
+#if BITCOIN_TESTNET
     // TODO: implement testnet difficulty rule check
     return r; // don't worry about difficulty on testnet for now
 #endif
