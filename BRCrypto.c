@@ -26,10 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "vertcoinhash/Lyra2.h"
-#include "vertcoinhash/Lyra2RE.h"
-#include "vertcoinhash/scryptn.h"
-
 
 // endian swapping
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
